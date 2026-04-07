@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Smart Parcel Management System</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- HEADER -->
+    <header>
+        <h1>🎓 Smart Parcel Management System</h1>
+        <div class="header-right">
+            <div class="user-info">
+                <span id="userDisplay">👮 Admin</span>
+            </div>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+    </header>
+
+    <!-- NAVIGATION -->
+    <nav>
+        <a href="dashboard.html" class="active">Dashboard</a>
+        <a href="manage_parcels.html">Manage Parcels</a>
+    </nav>
+
+    <!-- MAIN CONTENT -->
+    <div class="container">
+        <h2 class="page-title">Admin Dashboard</h2>
+
+        <!-- SUCCESS MESSAGE -->
+        <div class="success-message" id="successMessage">
+            <h4>✓ Success!</h4>
+            <p>Parcel has been added successfully.</p>
+        </div>
+
+        <!-- STATISTICS -->
+        <div class="summary-grid">
+            <div class="summary-card">
+                <h4>Total Parcels</h4>
+                <strong id="totalStat">0</strong>
+            </div>
+            <div class="summary-card">
+                <h4>Delivered</h4>
+                <strong id="deliveredStat">0</strong>
+            </div>
+            <div class="summary-card">
+                <h4>Pending</h4>
+                <strong id="pendingStat">0</strong>
+            </div>
+        </div>
+
+        <!-- CLEAR DATA BUTTON -->
+        <div style="margin: 1.5rem 0; text-align: right;">
+            <button class="btn" onclick="clearAllData()" style="background-color: #ff9800; color: white; padding: 0.6rem 1.2rem; border-radius: 6px; border: none; cursor: pointer; font-weight: 500;">
+                🗑️ Clear All Parcel Data
+            </button>
+        </div>
+
+        <!-- ADD PARCEL FORM -->
+        <div class="form-section">
+            <h3>Add New Parcel</h3>
+            
+            <form onsubmit="handleAddParcel(event)">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="studentName">Student Name</label>
+                        <input type="text" id="studentName" placeholder="John Doe" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="phoneNumber">Phone Number</label>
+                        <input type="tel" id="phoneNumber" placeholder="9876543210" pattern="[0-9]{10}" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="source">Source</label>
+                        <input type="text" id="source" placeholder="e.g., Amazon, Flipkart, Myntra" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="deliveryPerson">Delivery Person Name</label>
+                        <input type="text" id="deliveryPerson" placeholder="Jane Smith" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="deliveryPhone">Delivery Person Phone</label>
+                        <input type="tel" id="deliveryPhone" placeholder="9876543210" pattern="[0-9]{10}" required>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-full" style="margin-top: 1rem;">Add Parcel</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function checkAdminLogin() {
+            const adminLogin = localStorage.getItem('adminLogin');
+            if (!adminLogin) {
+                window.location.href = 'admin_login.html';
+                return;
+            }
+            
+            const data = JSON.parse(adminLogin);
+            document.getElementById('userDisplay').textContent = '👮 ' + data.username;
+            updateStatistics();
+        }
+
+        function logout() {
+            localStorage.removeItem('adminLogin');
+            window.location.href = 'role_selection.html';
+        }
+
+        function clearAllData() {
+            if (confirm('⚠️ Are you sure you want to DELETE ALL PARCELS? This cannot be undone!')) {
+                localStorage.removeItem('parcels');
+                alert('✓ All parcel data has been cleared!');
+                location.reload();
+            }
+        }
+
+        function handleAddParcel(event) {
+            event.preventDefault();
+            
+            const studentName = document.getElementById('studentName').value;
+            const phoneNumber = document.getElementById('phoneNumber').value;
+            const source = document.getElementById('source').value;
+            const deliveryPerson = document.getElementById('deliveryPerson').value;
+            const deliveryPhone = document.getElementById('deliveryPhone').value;
+
+            // Get today's date
+            const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+
+            // Get all parcels
+            const parcels = JSON.parse(localStorage.getItem('parcels')) || [];
+            
+            // Count parcels added today
+            const todayCount = parcels.filter(p => p.arrivalDate === today).length;
+            const nextSequenceNumber = todayCount + 1;
+            
+            // Generate parcel ID: 2026-04-07-001, 2026-04-07-002, etc.
+            const parcelId = `${today}-${String(nextSequenceNumber).padStart(3, '0')}`;
+
+            // Add new parcel
+            parcels.push({
+                id: parcelId,
+                studentName: studentName,
+                phone: phoneNumber,
+                source: source,
+                deliveryPerson: deliveryPerson,
+                deliveryPhone: deliveryPhone,
+                status: 'Arrived',
+                arrivalDate: today,
+                deliveryDate: ''
+            });
+
+            localStorage.setItem('parcels', JSON.stringify(parcels));
+
+            // Show success
+            const successMessage = document.getElementById('successMessage');
+            successMessage.classList.add('show');
+            setTimeout(() => {
+                successMessage.classList.remove('show');
+            }, 3000);
+
+            // Reset form
+            event.target.reset();
+            updateStatistics();
+        }
+
+        function updateStatistics() {
+            const parcels = JSON.parse(localStorage.getItem('parcels')) || [];
+            const total = parcels.length;
+            const delivered = parcels.filter(p => p.status === 'Delivered').length;
+            const pending = total - delivered;
+
+            document.getElementById('totalStat').textContent = total;
+            document.getElementById('deliveredStat').textContent = delivered;
+            document.getElementById('pendingStat').textContent = pending;
+        }
+
+        checkAdminLogin();
+    </script>
+</body>
+</html>

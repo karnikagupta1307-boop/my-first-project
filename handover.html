@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parcel Handover - Smart Parcel Management System</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- HEADER -->
+    <header>
+        <h1>🎓 Smart Parcel Management System</h1>
+        <div class="header-right">
+            <div class="user-info">
+                <span id="userDisplay">👮 Admin</span>
+            </div>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+    </header>
+
+    <!-- NAVIGATION -->
+    <nav>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="list.html">Parcel List</a>
+        <a href="handover.html" class="active">Parcel Handover</a>
+    </nav>
+
+    <!-- MAIN CONTENT -->
+    <div class="container">
+        <h2 class="page-title">Parcel Handover System</h2>
+
+        <!-- SUCCESS MESSAGE -->
+        <div class="success-message" id="handoverSuccessMessage">
+            <h4>✓ Handover Confirmed!</h4>
+            <p>Parcel has been successfully handed over.</p>
+        </div>
+
+        <!-- SEARCH SECTION -->
+        <div class="search-container">
+            <h3 style="margin-bottom: 1rem; color: #d32f2f;">Search Parcel</h3>
+            <div class="search-form">
+                <div class="form-group">
+                    <label for="parcelNumberInput">Parcel Number</label>
+                    <input type="text" id="parcelNumberInput" placeholder="Enter parcel ID" onkeyup="searchParcel()">
+                </div>
+            </div>
+        </div>
+
+        <!-- PARCEL DETAILS -->
+        <div id="parcelDetailsSection" class="table-container" style="display: none;">
+            <div style="padding: 2rem;">
+                <h3 id="parcelIdHeader" style="color: #d32f2f; margin-bottom: 1rem;">Parcel Details</h3>
+                
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 2rem;">
+                    <div>
+                        <label style="font-weight: 600; color: #666;">Parcel ID:</label>
+                        <p id="detailParcelId">-</p>
+                    </div>
+                    <div>
+                        <label style="font-weight: 600; color: #666;">Student Name:</label>
+                        <p id="detailStudentName">-</p>
+                    </div>
+                    <div>
+                        <label style="font-weight: 600; color: #666;">Phone:</label>
+                        <p id="detailPhone">-</p>
+                    </div>
+                    <div>
+                        <label style="font-weight: 600; color: #666;">Status:</label>
+                        <p id="detailStatus">-</p>
+                    </div>
+                </div>
+
+                <button id="confirmHandoverBtn" class="btn btn-primary" onclick="confirmHandover()" style="width: 100%;">Confirm Handover</button>
+            </div>
+        </div>
+
+        <!-- NO RESULTS MESSAGE -->
+        <div id="noResultsMessage" class="no-results" style="display: none;">
+            Parcel not found. Please check the parcel ID.
+        </div>
+    </div>
+
+    <script>
+        let currentParcel = null;
+
+        function checkAdminLogin() {
+            const adminLogin = localStorage.getItem('adminLogin');
+            if (!adminLogin) {
+                window.location.href = 'admin_login.html';
+                return;
+            }
+
+            const data = JSON.parse(adminLogin);
+            document.getElementById('userDisplay').textContent = '👮 ' + data.username;
+        }
+
+        function logout() {
+            localStorage.removeItem('adminLogin');
+            window.location.href = 'role_selection.html';
+        }
+
+        function searchParcel() {
+            const parcelNumber = document.getElementById('parcelNumberInput').value.trim().toUpperCase();
+            const detailsSection = document.getElementById('parcelDetailsSection');
+            const noResultsMessage = document.getElementById('noResultsMessage');
+
+            if (!parcelNumber) {
+                detailsSection.style.display = 'none';
+                noResultsMessage.style.display = 'none';
+                currentParcel = null;
+                return;
+            }
+
+            const parcels = JSON.parse(localStorage.getItem('parcels')) || [];
+            const parcel = parcels.find(p => String(p.id).toUpperCase() === parcelNumber);
+
+            if (!parcel) {
+                detailsSection.style.display = 'none';
+                noResultsMessage.style.display = 'block';
+                currentParcel = null;
+                return;
+            }
+
+            currentParcel = parcel;
+            const parcelIndex = parcels.indexOf(parcel);
+
+            document.getElementById('parcelIdHeader').textContent = `Parcel ${parcel.id}`;
+            document.getElementById('detailParcelId').textContent = parcel.id;
+            document.getElementById('detailStudentName').textContent = parcel.studentName;
+            document.getElementById('detailPhone').textContent = parcel.phone;
+            
+            const statusElement = document.getElementById('detailStatus');
+            statusElement.textContent = parcel.status;
+            statusElement.className = `card-status status-${parcel.status.toLowerCase()}`;
+
+            detailsSection.style.display = 'block';
+            noResultsMessage.style.display = 'none';
+            document.getElementById('handoverSuccessMessage').classList.remove('show');
+
+            const confirmBtn = document.getElementById('confirmHandoverBtn');
+            if (parcel.status === 'Delivered') {
+                confirmBtn.disabled = true;
+                confirmBtn.style.opacity = '0.5';
+                confirmBtn.textContent = 'Already Delivered';
+            } else {
+                confirmBtn.disabled = false;
+                confirmBtn.style.opacity = '1';
+                confirmBtn.textContent = 'Confirm Handover';
+            }
+        }
+
+        function confirmHandover() {
+            if (!currentParcel) return;
+
+            const parcels = JSON.parse(localStorage.getItem('parcels')) || [];
+            const parcelIndex = parcels.findIndex(p => p.id === currentParcel.id);
+
+            if (parcelIndex !== -1) {
+                parcels[parcelIndex].status = 'Delivered';
+                parcels[parcelIndex].deliveryDate = new Date().toLocaleDateString('en-IN');
+                currentParcel.status = 'Delivered';
+
+                localStorage.setItem('parcels', JSON.stringify(parcels));
+
+                const statusElement = document.getElementById('detailStatus');
+                statusElement.textContent = 'Delivered';
+                statusElement.className = 'card-status status-delivered';
+
+                const successMessage = document.getElementById('handoverSuccessMessage');
+                successMessage.classList.add('show');
+
+                const confirmBtn = document.getElementById('confirmHandoverBtn');
+                confirmBtn.disabled = true;
+                confirmBtn.style.opacity = '0.5';
+                confirmBtn.textContent = 'Already Delivered';
+
+                setTimeout(() => {
+                    successMessage.classList.remove('show');
+                }, 4000);
+            }
+        }
+
+        document.getElementById('parcelNumberInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchParcel();
+            }
+        });
+
+        checkAdminLogin();
+    </script>
+</body>
+</html>

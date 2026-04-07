@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parcel List - Smart Parcel Management System</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- HEADER -->
+    <header>
+        <h1>🎓 Smart Parcel Management System</h1>
+        <div class="header-right">
+            <div class="user-info">
+                <span id="userDisplay">👮 Admin</span>
+            </div>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+    </header>
+
+    <!-- NAVIGATION -->
+    <nav>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="list.html" class="active">Parcel List</a>
+        <a href="handover.html">Parcel Handover</a>
+    </nav>
+
+    <!-- MAIN CONTENT -->
+    <div class="container">
+        <h2 class="page-title">All Parcels</h2>
+
+        <!-- SUCCESS MESSAGE -->
+        <div class="success-message" id="statusMessage">
+            <h4>✓ Status Updated!</h4>
+            <p>Parcel status has been updated to "Delivered".</p>
+        </div>
+
+        <!-- PARCELS TABLE -->
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Parcel ID</th>
+                        <th>Student Name</th>
+                        <th>Phone</th>
+                        <th>Source</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="parcelTableBody">
+                </tbody>
+            </table>
+        </div>
+
+        <div id="emptyState" class="no-results" style="display: none;">
+            No parcels found in the system yet.
+        </div>
+    </div>
+
+    <script>
+        function checkAdminLogin() {
+            const adminLogin = localStorage.getItem('adminLogin');
+            if (!adminLogin) {
+                window.location.href = 'admin_login.html';
+                return;
+            }
+
+            const data = JSON.parse(adminLogin);
+            document.getElementById('userDisplay').textContent = '👮 ' + data.username;
+            populateTable();
+        }
+
+        function logout() {
+            localStorage.removeItem('adminLogin');
+            window.location.href = 'role_selection.html';
+        }
+
+        function populateTable() {
+            const parcels = JSON.parse(localStorage.getItem('parcels')) || [];
+            const tableBody = document.getElementById('parcelTableBody');
+            const emptyState = document.getElementById('emptyState');
+
+            if (parcels.length === 0) {
+                tableBody.innerHTML = '';
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            emptyState.style.display = 'none';
+            tableBody.innerHTML = parcels.map((parcel, index) => `
+                <tr>
+                    <td>${parcel.id.split('-').pop()}</td>
+                    <td>${parcel.studentName}</td>
+                    <td>${parcel.phone}</td>
+                    <td>${parcel.source}</td>
+                    <td>
+                        <span class="card-status status-${parcel.status.toLowerCase()}">
+                            ${parcel.status}
+                        </span>
+                    </td>
+                    <td>
+                        ${parcel.status === 'Arrived' ? 
+                            `<button class="btn btn-small btn-primary" onclick="markAsDelivered(${index})">Mark as Delivered</button>` 
+                            : 
+                            `<span style="color: #999;">✓ Delivered</span>`
+                        }
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function markAsDelivered(index) {
+            const parcels = JSON.parse(localStorage.getItem('parcels')) || [];
+            parcels[index].status = 'Delivered';
+            parcels[index].deliveryDate = new Date().toLocaleDateString('en-IN');
+
+            localStorage.setItem('parcels', JSON.stringify(parcels));
+            populateTable();
+
+            const statusMessage = document.getElementById('statusMessage');
+            statusMessage.classList.add('show');
+            setTimeout(() => {
+                statusMessage.classList.remove('show');
+            }, 3000);
+        }
+
+        checkAdminLogin();
+    </script>
+</body>
+</html>

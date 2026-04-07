@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Watchman Login</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <h2>👮 Watchman Login</h2>
+            <p class="login-intro">Enter your credentials to access the watchman dashboard.</p>
+
+            <div id="errorMessage" style="background-color: #f8d7da; color: #721c24; padding: 0.8rem; border-radius: 6px; margin-bottom: 1.5rem; border-left: 4px solid #d32f2f; display: none;">
+                Invalid username or password. Please try again.
+            </div>
+
+            <form id="loginForm" onsubmit="handleWatchmanLogin(event)">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" placeholder="Enter your username" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" placeholder="Enter your password" required>
+                </div>
+
+                <button type="submit" class="btn btn-full">Login</button>
+            </form>
+
+            <p class="login-help" style="margin-top: 1.5rem; text-align: center;">
+                <a href="login.html" class="login-link">← Back to Login</a>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        function handleWatchmanLogin(event) {
+            event.preventDefault();
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+            const errorMessage = document.getElementById('errorMessage');
+
+            // Sample credentials (in real app, this would be validated against a backend)
+            const validCredentials = [
+                { username: 'watchman', password: 'pass123' },
+                { username: 'admin', password: 'admin123' },
+                { username: 'guard', password: 'security' }
+            ];
+
+            const isValid = validCredentials.some(cred => 
+                cred.username === username && cred.password === password
+            );
+
+            if (!isValid) {
+                errorMessage.style.display = 'block';
+                return;
+            }
+
+            // Login successful
+            sessionStorage.setItem('userRole', 'watchman');
+            sessionStorage.setItem('username', username);
+            sessionStorage.setItem('isLoggedIn', 'true');
+            window.location.href = 'dashboard.html';
+        }
+    </script>
+</body>
+</html>

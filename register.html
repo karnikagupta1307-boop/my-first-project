@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Registration - Smart Parcel Management System</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <h2>📝 Student Registration</h2>
+            <p class="login-intro">Create your account to get started</p>
+            
+            <form onsubmit="handleStudentRegister(event)">
+                <div class="form-group">
+                    <label for="name">Full Name</label>
+                    <input type="text" id="name" placeholder="Enter your full name" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="sap_id">SAP ID</label>
+                    <input type="text" id="sap_id" placeholder="12345001" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="phone">Phone Number</label>
+                    <input type="tel" id="phone" placeholder="9876543210" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" placeholder="Create a password" required>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-full">Register</button>
+            </form>
+
+            <p class="login-help">
+                Already have an account? <a href="login.html" class="login-link">Login here</a>
+            </p>
+
+            <p class="login-help">
+                <a href="role_selection.html" class="login-link">← Back to Role Selection</a>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        function handleStudentRegister(event) {
+            event.preventDefault();
+            const name = document.getElementById('name').value;
+            const sapId = document.getElementById('sap_id').value;
+            const phone = document.getElementById('phone').value;
+            const password = document.getElementById('password').value;
+
+            if (name.trim() && sapId.trim() && phone.trim() && password.trim()) {
+                // Store student info
+                localStorage.setItem('studentSignup', JSON.stringify({
+                    name: name,
+                    sapId: sapId,
+                    phone: phone
+                }));
+
+                // Also store in a students mapping (phone -> sapId) for admin dashboard lookup
+                const studentMappings = JSON.parse(localStorage.getItem('studentMappings')) || {};
+                studentMappings[phone] = {
+                    sapId: sapId,
+                    name: name
+                };
+                localStorage.setItem('studentMappings', JSON.stringify(studentMappings));
+
+                alert('Registration successful! Please login with your credentials.');
+                window.location.href = 'login.html';
+            }
+        }
+    </script>
+</body>
+</html>
