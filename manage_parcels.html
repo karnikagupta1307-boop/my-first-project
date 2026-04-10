@@ -93,9 +93,22 @@
                 return;
             }
 
-            const data = JSON.parse(adminLogin);
-            document.getElementById('userDisplay').textContent = '👮 ' + data.username;
-            await loadParcels();
+            try {
+                const data = JSON.parse(adminLogin);
+                if (!data.username) {
+                    // Invalid login data
+                    localStorage.removeItem('adminLogin');
+                    window.location.href = 'admin_login.html';
+                    return;
+                }
+                
+                document.getElementById('userDisplay').textContent = '👮 ' + data.username;
+                await loadParcels();
+            } catch (e) {
+                console.error('Error parsing login data:', e);
+                localStorage.removeItem('adminLogin');
+                window.location.href = 'admin_login.html';
+            }
         }
 
         function logout() {

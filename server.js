@@ -127,25 +127,31 @@ async function createTables() {
 // Function to insert sample data
 async function insertSampleData() {
     try {
-        // Check if students table is empty
-        const [students] = await promiseDb.query('SELECT COUNT(*) as count FROM students');
+        // Clear parcels first (foreign key constraint)
+        await promiseDb.query('DELETE FROM parcels');
         
-        if (students[0].count === 0) {
-            // Hash passwords for sample students
-            const hashedPassword1 = await bcrypt.hash('student123', SALT_ROUNDS);
-            const hashedPassword2 = await bcrypt.hash('student456', SALT_ROUNDS);
-            
-            // Insert sample students with 11-digit SAP IDs
-            await promiseDb.query(
-                'INSERT INTO students (name, sap_id, phone, password_hash) VALUES (?, ?, ?, ?)',
-                ['Rahul Sharma', '12345678901', '9876543210', hashedPassword1]
-            );
-            await promiseDb.query(
-                'INSERT INTO students (name, sap_id, phone, password_hash) VALUES (?, ?, ?, ?)',
-                ['Priya Mehta', '12345678902', '9876543211', hashedPassword2]
-            );
-            console.log('✓ Sample students inserted');
-        }
+        // Clear all students and insert only 3 demo students
+        await promiseDb.query('DELETE FROM students');
+        
+        // Hash passwords for demo students
+        const hashedPassword1 = await bcrypt.hash('student123', SALT_ROUNDS);
+        const hashedPassword2 = await bcrypt.hash('student456', SALT_ROUNDS);
+        const hashedPassword3 = await bcrypt.hash('student789', SALT_ROUNDS);
+        
+        // Insert exactly 3 demo students with proper 11-digit SAP IDs
+        const [result1] = await promiseDb.query(
+            'INSERT INTO students (name, sap_id, phone, password_hash) VALUES (?, ?, ?, ?)',
+            ['Rahul Sharma', '12345678901', '9876543210', hashedPassword1]
+        );
+        const [result2] = await promiseDb.query(
+            'INSERT INTO students (name, sap_id, phone, password_hash) VALUES (?, ?, ?, ?)',
+            ['Priya Mehta', '12345678902', '9876543211', hashedPassword2]
+        );
+        const [result3] = await promiseDb.query(
+            'INSERT INTO students (name, sap_id, phone, password_hash) VALUES (?, ?, ?, ?)',
+            ['Aditya Verma', '12345678903', '9876543212', hashedPassword3]
+        );
+        console.log('✓ 3 Demo students inserted');
 
         // Clear existing admins and create only the required one
         await promiseDb.query('DELETE FROM admins');
@@ -160,21 +166,18 @@ async function insertSampleData() {
         );
         console.log('✓ Admin account created: nmims@123');
 
-        // Clear and insert sample parcels with sequential IDs
-        await promiseDb.query('DELETE FROM parcels');
-        
-        // Insert sample parcels with simple sequential IDs
+        // Insert sample parcels with correct student IDs
         await promiseDb.query(
             `INSERT INTO parcels (parcel_id, student_id, student_name, sap_id, phone, source, delivery_person, delivery_phone) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-            ['1', 1, 'Rahul Sharma', '12345678901', '9876543210', 'Amazon', 'Ravi Kumar', '9000000001']
+            ['1', result1.insertId, 'Rahul Sharma', '12345678901', '9876543210', 'Amazon', 'Ravi Kumar', '9000000001']
         );
         await promiseDb.query(
             `INSERT INTO parcels (parcel_id, student_id, student_name, sap_id, phone, source, delivery_person, delivery_phone) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-            ['2', 2, 'Priya Mehta', '12345678902', '9876543211', 'Flipkart', 'Suresh Singh', '9000000002']
+            ['2', result2.insertId, 'Priya Mehta', '12345678902', '9876543211', 'Flipkart', 'Suresh Singh', '9000000002']
         );
         await promiseDb.query(
             `INSERT INTO parcels (parcel_id, student_id, student_name, sap_id, phone, source, delivery_person, delivery_phone) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-            ['3', 1, 'Rahul Sharma', '12345678901', '9876543210', 'Myntra', 'Amit Yadav', '9000000003']
+            ['3', result1.insertId, 'Rahul Sharma', '12345678901', '9876543210', 'Myntra', 'Amit Yadav', '9000000003']
         );
         console.log('✓ Sample parcels inserted (IDs: 1, 2, 3)');
     } catch (err) {

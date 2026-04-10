@@ -78,11 +78,24 @@
                 return;
             }
             
-            const data = JSON.parse(studentLogin);
-            const studentName = data.name || 'Student';
-            document.getElementById('userDisplay').textContent = '👨‍🎓 ' + studentName;
-            document.getElementById('welcomeMessage').textContent = 'Welcome, ' + studentName;
-            await loadStudentParcels(data.sap_id, data.phone);
+            try {
+                const data = JSON.parse(studentLogin);
+                if (!data.sap_id) {
+                    // Invalid login data
+                    localStorage.removeItem('studentLogin');
+                    window.location.href = 'login.html';
+                    return;
+                }
+                
+                const studentName = data.name || 'Student';
+                document.getElementById('userDisplay').textContent = '👨‍🎓 ' + studentName;
+                document.getElementById('welcomeMessage').textContent = 'Welcome, ' + studentName;
+                await loadStudentParcels(data.sap_id, data.phone);
+            } catch (e) {
+                console.error('Error parsing login data:', e);
+                localStorage.removeItem('studentLogin');
+                window.location.href = 'login.html';
+            }
         }
 
         function logout() {
