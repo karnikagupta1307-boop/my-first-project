@@ -73,6 +73,22 @@
                         <input type="tel" id="phoneNumber" placeholder="9876543210" pattern="\d{10}" maxlength="10" required>
                     </div>
 
+                    <div class="form-group" style="display: flex; align-items: flex-end;">
+                        <button type="button" class="btn" onclick="fetchStudentDetails()" style="background-color: #2196F3; color: white; padding: 0.75rem 1.5rem; border-radius: 6px; border: none; cursor: pointer; font-weight: 500; width: 100%;">
+                            🔍 Fetch Details
+                        </button>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="sapId">SAP ID</label>
+                        <input type="text" id="sapId" placeholder="Auto-fetched" readonly style="background-color: #f5f5f5;">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="studentEmail">Student Email</label>
+                        <input type="email" id="studentEmail" placeholder="Auto-fetched" readonly style="background-color: #f5f5f5;">
+                    </div>
+
                     <div class="form-group">
                         <label for="source">Source</label>
                         <input type="text" id="source" placeholder="e.g., Amazon, Flipkart, Myntra" required>
@@ -140,14 +156,51 @@
             }
         }
 
+        async function fetchStudentDetails() {
+            const name = document.getElementById('studentName').value.trim();
+            const phone = document.getElementById('phoneNumber').value.trim();
+
+            if (!name || !phone) {
+                alert('Please enter both student name and phone number');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/students/search?name=${encodeURIComponent(name)}&phone=${encodeURIComponent(phone)}`);
+                const data = await response.json();
+
+                if (!response.ok || !data.student) {
+                    alert('Student not found. Please check the name and phone number.');
+                    document.getElementById('sapId').value = '';
+                    document.getElementById('studentEmail').value = '';
+                    return;
+                }
+
+                // Auto-fill SAP ID and Email
+                document.getElementById('sapId').value = data.student.sap_id || '';
+                document.getElementById('studentEmail').value = data.student.email || '';
+
+            } catch (error) {
+                console.error('Error fetching student details:', error);
+                alert('Failed to fetch student details. Please try again.');
+            }
+        }
+
         async function handleAddParcel(event) {
             event.preventDefault();
             
             const studentName = document.getElementById('studentName').value.trim();
             const phoneNumber = document.getElementById('phoneNumber').value.trim();
+            const sapId = document.getElementById('sapId').value.trim();
+            const studentEmail = document.getElementById('studentEmail').value.trim();
             const source = document.getElementById('source').value.trim();
             const deliveryPerson = document.getElementById('deliveryPerson').value.trim();
             const deliveryPhone = document.getElementById('deliveryPhone').value.trim();
+
+            if (!sapId || !studentEmail) {
+                alert('Please fetch student details first');
+                return;
+            }
 
             try {
                 const response = await fetch(`${API_BASE_URL}/parcels`, {
@@ -156,6 +209,8 @@
                     body: JSON.stringify({
                         student_name: studentName,
                         phone: phoneNumber,
+                        sap_id: sapId,
+                        email: studentEmail,
                         source: source,
                         delivery_person: deliveryPerson,
                         delivery_phone: deliveryPhone

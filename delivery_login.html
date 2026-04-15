@@ -3,20 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Watchman Login</title>
+    <title>Delivery Person Login</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="login-container">
         <div class="login-card">
-            <h2>👮 Watchman Login</h2>
-            <p class="login-intro">Enter your credentials to access the watchman dashboard.</p>
+            <h2>📦 Delivery Person Login</h2>
+            <p class="login-intro">Enter your credentials to access the delivery portal.</p>
 
             <div id="errorMessage" style="background-color: #f8d7da; color: #721c24; padding: 0.8rem; border-radius: 6px; margin-bottom: 1.5rem; border-left: 4px solid #d32f2f; display: none;">
                 Invalid username or password. Please try again.
             </div>
 
-            <form id="loginForm" onsubmit="handleWatchmanLogin(event)">
+            <form id="loginForm" onsubmit="handleDeliveryLogin(event)">
                 <div class="form-group">
                     <label for="username">Username</label>
                     <input type="text" id="username" placeholder="Enter your username" required>
@@ -31,23 +31,23 @@
             </form>
 
             <p class="login-help" style="margin-top: 1.5rem; text-align: center;">
-                <a href="login.html" class="login-link">← Back to Login</a>
+                <a href="role_selection.html" class="login-link">← Back to Role Selection</a>
             </p>
         </div>
     </div>
 
     <script>
-        function handleWatchmanLogin(event) {
+        function handleDeliveryLogin(event) {
             event.preventDefault();
             const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value.trim();
             const errorMessage = document.getElementById('errorMessage');
 
-            // Sample credentials (in real app, this would be validated against a backend)
+            // Sample credentials for delivery persons
             const validCredentials = [
-                { username: 'watchman', password: 'pass123' },
-                { username: 'admin', password: 'admin123' },
-                { username: 'guard', password: 'security' }
+                { username: 'delivery', password: 'delivery123' },
+                { username: 'courier', password: 'courier123' },
+                { username: 'agent', password: 'agent123' }
             ];
 
             const isValid = validCredentials.some(cred => 
@@ -60,10 +60,10 @@
             }
 
             // Login successful
-            sessionStorage.setItem('userRole', 'watchman');
+            sessionStorage.setItem('userRole', 'delivery');
             sessionStorage.setItem('username', username);
             sessionStorage.setItem('isLoggedIn', 'true');
-            window.location.href = 'dashboard.html';
+            window.location.href = 'delivery_dashboard.html';
         }
     </script>
 </body>

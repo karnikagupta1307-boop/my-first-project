@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const mysql = require('mysql2');
 const bcrypt = require('bcrypt');
+const nodemailer = require('nodemailer');
 require('dotenv').config();
 
 const app = express();
@@ -12,12 +13,34 @@ app.use(express.json());
 const SALT_ROUNDS = 10;
 const ADMIN_USERNAME = 'nmims@123';
 const ADMIN_PASSWORD = 'nmims123';
+const OTP_EXPIRY_MINUTES = 5;
+
+// Email configuration (configure with your email credentials)
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.EMAIL_USER || '',
+        pass: process.env.EMAIL_PASS || ''
+    }
+});
+
+// Verify email configuration on startup
+transporter.verify(function(error, success) {
+    if (error) {
+        console.error('❌ Email configuration error:', error.message);
+        console.error('   EMAIL_USER:', process.env.EMAIL_USER ? 'Set' : 'Not set');
+        console.error('   EMAIL_PASS:', process.env.EMAIL_PASS ? 'Set (length: ' + process.env.EMAIL_PASS.length + ')' : 'Not set');
+    } else {
+        console.log('✓ Email server is ready to send messages');
+    }
+});
 
 // Serve static files (frontend HTML, CSS, JS)
 app.use(express.static('.'));
 
 // Database configuration
 const DB_HOST = process.env.DB_HOST || 'localhost';
+const DB_PORT = process.env.DB_PORT || '3306';
 const DB_USER = process.env.DB_USER || 'root';
 const DB_PASSWORD = process.env.DB_PASSWORD || '';
 const DB_NAME = process.env.DB_NAME || 'parcel_management';
@@ -31,6 +54,7 @@ async function initializeDatabase() {
         // Step 1: Connect to MySQL without database to create it
         const tempConnection = mysql.createConnection({
             host: DB_HOST,
+            port: DB_PORT,
             user: DB_USER,
             password: DB_PASSWORD
         });
@@ -47,6 +71,7 @@ async function initializeDatabase() {
         // Step 2: Create connection pool with the database
         db = mysql.createPool({
             host: DB_HOST,
+            port: DB_PORT,
             user: DB_USER,
             password: DB_PASSWORD,
             database: DB_NAME,
@@ -86,6 +111,16 @@ async function createTables() {
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         )
     `);
+    
+    // Add email column if not exists
+    try {
+        await promiseDb.query("ALTER TABLE students ADD COLUMN email VARCHAR(100) NOT NULL DEFAULT ''");
+        console.log('✓ Added email column to students table');
+    } catch (err) {
+        if (err.code !== 'ER_DUP_FIELDNAME') {
+            console.error('Error adding email column:', err);
+        }
+    }
     console.log('✓ Table "students" ready');
 
     // Create admins table
@@ -121,7 +156,33 @@ async function createTables() {
             FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
         )
     `);
+    
+    // Add email column if not exists
+    try {
+        await promiseDb.query("ALTER TABLE parcels ADD COLUMN email VARCHAR(100) NOT NULL DEFAULT ''");
+        console.log('✓ Added email column to parcels table');
+    } catch (err) {
+        if (err.code !== 'ER_DUP_FIELDNAME') {
+            console.error('Error adding email column:', err);
+        }
+    }
     console.log('✓ Table "parcels" ready');
+
+    // Create parcel_otps table
+    await promiseDb.query(`
+        CREATE TABLE IF NOT EXISTS parcel_otps (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            parcel_id VARCHAR(20) NOT NULL,
+            email VARCHAR(100) NOT NULL,
+            otp_code VARCHAR(6) NOT NULL,
+            status ENUM('Active', 'Used', 'Expired') NOT NULL DEFAULT 'Active',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            expires_at DATETIME NOT NULL,
+            used_at DATETIME DEFAULT NULL,
+            FOREIGN KEY (parcel_id) REFERENCES parcels(parcel_id) ON DELETE CASCADE
+        )
+    `);
+    console.log('✓ Table "parcel_otps" ready');
 }
 
 // Function to insert sample data
@@ -138,18 +199,18 @@ async function insertSampleData() {
         const hashedPassword2 = await bcrypt.hash('student456', SALT_ROUNDS);
         const hashedPassword3 = await bcrypt.hash('student789', SALT_ROUNDS);
         
-        // Insert exactly 3 demo students with proper 11-digit SAP IDs
+        // Insert exactly 3 demo students with proper 11-digit SAP IDs and emails
         const [result1] = await promiseDb.query(
-            'INSERT INTO students (name, sap_id, phone, password_hash) VALUES (?, ?, ?, ?)',
-            ['Rahul Sharma', '12345678901', '9876543210', hashedPassword1]
+            'INSERT INTO students (name, sap_id, phone, email, password_hash) VALUES (?, ?, ?, ?, ?)',
+            ['Rahul Sharma', '12345678901', '9876543210', 'rahul.sharma@example.com', hashedPassword1]
         );
         const [result2] = await promiseDb.query(
-            'INSERT INTO students (name, sap_id, phone, password_hash) VALUES (?, ?, ?, ?)',
-            ['Priya Mehta', '12345678902', '9876543211', hashedPassword2]
+            'INSERT INTO students (name, sap_id, phone, email, password_hash) VALUES (?, ?, ?, ?, ?)',
+            ['Priya Mehta', '12345678902', '9876543211', 'priya.mehta@example.com', hashedPassword2]
         );
         const [result3] = await promiseDb.query(
-            'INSERT INTO students (name, sap_id, phone, password_hash) VALUES (?, ?, ?, ?)',
-            ['Aditya Verma', '12345678903', '9876543212', hashedPassword3]
+            'INSERT INTO students (name, sap_id, phone, email, password_hash) VALUES (?, ?, ?, ?, ?)',
+            ['Aditya Verma', '12345678903', '9876543212', 'aditya.verma@example.com', hashedPassword3]
         );
         console.log('✓ 3 Demo students inserted');
 
@@ -166,18 +227,18 @@ async function insertSampleData() {
         );
         console.log('✓ Admin account created: nmims@123');
 
-        // Insert sample parcels with correct student IDs
+        // Insert sample parcels with correct student IDs and emails
         await promiseDb.query(
-            `INSERT INTO parcels (parcel_id, student_id, student_name, sap_id, phone, source, delivery_person, delivery_phone) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-            ['1', result1.insertId, 'Rahul Sharma', '12345678901', '9876543210', 'Amazon', 'Ravi Kumar', '9000000001']
+            `INSERT INTO parcels (parcel_id, student_id, student_name, sap_id, phone, email, source, delivery_person, delivery_phone) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            ['1', result1.insertId, 'Rahul Sharma', '12345678901', '9876543210', 'rahul.sharma@example.com', 'Amazon', 'Ravi Kumar', '9000000001']
         );
         await promiseDb.query(
-            `INSERT INTO parcels (parcel_id, student_id, student_name, sap_id, phone, source, delivery_person, delivery_phone) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-            ['2', result2.insertId, 'Priya Mehta', '12345678902', '9876543211', 'Flipkart', 'Suresh Singh', '9000000002']
+            `INSERT INTO parcels (parcel_id, student_id, student_name, sap_id, phone, email, source, delivery_person, delivery_phone) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            ['2', result2.insertId, 'Priya Mehta', '12345678902', '9876543211', 'priya.mehta@example.com', 'Flipkart', 'Suresh Singh', '9000000002']
         );
         await promiseDb.query(
-            `INSERT INTO parcels (parcel_id, student_id, student_name, sap_id, phone, source, delivery_person, delivery_phone) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-            ['3', result1.insertId, 'Rahul Sharma', '12345678901', '9876543210', 'Myntra', 'Amit Yadav', '9000000003']
+            `INSERT INTO parcels (parcel_id, student_id, student_name, sap_id, phone, email, source, delivery_person, delivery_phone) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            ['3', result1.insertId, 'Rahul Sharma', '12345678901', '9876543210', 'rahul.sharma@example.com', 'Myntra', 'Amit Yadav', '9000000003']
         );
         console.log('✓ Sample parcels inserted (IDs: 1, 2, 3)');
     } catch (err) {
@@ -229,6 +290,7 @@ app.post('/api/auth/student/login', async (req, res) => {
                 name: student.name,
                 sap_id: student.sap_id,
                 phone: student.phone,
+                email: student.email,
                 role: 'student'
             }
         });
@@ -281,11 +343,17 @@ app.post('/api/auth/admin/login', async (req, res) => {
 
 // Student Registration API with validation
 app.post('/api/auth/student/register', async (req, res) => {
-    const { name, sap_id, phone, password } = req.body;
+    const { name, sap_id, phone, email, password } = req.body;
     
     // Validate all fields present
-    if (!name || !sap_id || !phone || !password) {
+    if (!name || !sap_id || !phone || !email || !password) {
         return res.status(400).json({ error: "All fields are required" });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        return res.status(400).json({ error: "Please provide a valid email address" });
     }
 
     // Validate name (at least 2 characters, letters and spaces only)
@@ -329,12 +397,22 @@ app.post('/api/auth/student/register', async (req, res) => {
             return res.status(409).json({ error: "Phone number already registered" });
         }
 
+        // Check if email already exists
+        const [existingEmail] = await promiseDb.query(
+            "SELECT * FROM students WHERE email = ?",
+            [email]
+        );
+        
+        if (existingEmail.length > 0) {
+            return res.status(409).json({ error: "Email already registered" });
+        }
+
         // Hash the password with bcrypt
         const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
 
         const [result] = await promiseDb.query(
-            "INSERT INTO students (name, sap_id, phone, password_hash) VALUES (?, ?, ?, ?)",
-            [name, sap_id, phone, passwordHash]
+            "INSERT INTO students (name, sap_id, phone, email, password_hash) VALUES (?, ?, ?, ?, ?)",
+            [name, sap_id, phone, email, passwordHash]
         );
 
         res.status(201).json({
@@ -345,6 +423,7 @@ app.post('/api/auth/student/register', async (req, res) => {
                 name: name,
                 sap_id: sap_id,
                 phone: phone,
+                email: email,
                 role: 'student'
             }
         });
@@ -424,25 +503,23 @@ app.get('/api/parcels/search', async (req, res) => {
 
 // Add a new parcel
 app.post('/api/parcels', async (req, res) => {
-    const { student_name, phone, source, delivery_person, delivery_phone, sap_id } = req.body;
+    const { student_name, phone, sap_id, email, source, delivery_person, delivery_phone } = req.body;
 
-    if (!student_name || !phone || !source) {
-        return res.status(400).json({ error: "Student name, phone, and source are required" });
+    if (!student_name || !phone || !sap_id || !email || !source) {
+        return res.status(400).json({ error: "Student name, phone, SAP ID, email, and source are required" });
     }
 
     try {
-        // Find student by phone or SAP ID
+        // Find student by phone and SAP ID
         let studentId = null;
-        let studentSapId = sap_id;
         
         const [students] = await promiseDb.query(
-            "SELECT id, sap_id FROM students WHERE phone = ? OR sap_id = ?",
-            [phone, sap_id || '']
+            "SELECT id FROM students WHERE phone = ? AND sap_id = ?",
+            [phone, sap_id]
         );
         
         if (students.length > 0) {
             studentId = students[0].id;
-            studentSapId = students[0].sap_id;
         }
 
         // Generate sequential parcel ID (1, 2, 3, ...)
@@ -453,9 +530,9 @@ app.post('/api/parcels', async (req, res) => {
         const parcel_id = String(nextId);
 
         const [result] = await promiseDb.query(
-            `INSERT INTO parcels (parcel_id, student_id, student_name, phone, sap_id, source, delivery_person, delivery_phone, status, arrival_date) 
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Arrived', CURDATE())`,
-            [parcel_id, studentId, student_name, phone, studentSapId || '', source, delivery_person || '', delivery_phone || '']
+            `INSERT INTO parcels (parcel_id, student_id, student_name, phone, sap_id, email, source, delivery_person, delivery_phone, status, arrival_date) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Arrived', CURDATE())`,
+            [parcel_id, studentId, student_name, phone, sap_id, email, source, delivery_person || '', delivery_phone || '']
         );
 
         res.status(201).json({
@@ -495,6 +572,213 @@ app.put('/api/parcels/:id/deliver', async (req, res) => {
     }
 });
 
+// ==================== STUDENT APIs ====================
+
+// Search student by name and phone
+app.get('/api/students/search', async (req, res) => {
+    const { name, phone } = req.query;
+    
+    if (!name || !phone) {
+        return res.status(400).json({ error: "Name and phone are required" });
+    }
+
+    try {
+        const [results] = await promiseDb.query(
+            "SELECT id, name, sap_id, phone, email FROM students WHERE name = ? AND phone = ?",
+            [name, phone]
+        );
+
+        if (results.length === 0) {
+            return res.status(404).json({ error: "Student not found" });
+        }
+
+        res.json({ student: results[0] });
+    } catch (err) {
+        console.error("Error searching student:", err);
+        res.status(500).json({ error: "Failed to search student" });
+    }
+});
+
+// ==================== PARCEL OTP APIs ====================
+
+// Get parcels by student name and phone
+app.get('/api/parcels/by-student', async (req, res) => {
+    const { name, phone, status } = req.query;
+    
+    if (!name || !phone) {
+        return res.status(400).json({ error: "Name and phone are required" });
+    }
+
+    try {
+        let sqlQuery = "SELECT * FROM parcels WHERE student_name = ? AND phone = ?";
+        const params = [name, phone];
+
+        if (status) {
+            sqlQuery += " AND status = ?";
+            params.push(status);
+        }
+
+        sqlQuery += " ORDER BY created_at DESC";
+
+        const [results] = await promiseDb.query(sqlQuery, params);
+        res.json({ parcels: results });
+    } catch (err) {
+        console.error("Error fetching parcels by student:", err);
+        res.status(500).json({ error: "Failed to fetch parcels" });
+    }
+});
+
+// Generate OTP for parcel
+app.post('/api/otp/generate', async (req, res) => {
+    const { student_name, phone, parcel_id } = req.body;
+
+    if (!student_name || !phone || !parcel_id) {
+        return res.status(400).json({ error: "Student name, phone, and parcel ID are required" });
+    }
+
+    try {
+        // Find student by name and phone to get email
+        const [students] = await promiseDb.query(
+            "SELECT email FROM students WHERE name = ? AND phone = ?",
+            [student_name, phone]
+        );
+
+        if (students.length === 0) {
+            return res.status(404).json({ error: "Student not found" });
+        }
+
+        const studentEmail = students[0].email;
+
+        // Verify parcel exists and belongs to student
+        const [parcels] = await promiseDb.query(
+            "SELECT * FROM parcels WHERE parcel_id = ? AND student_name = ? AND phone = ? AND status = 'Arrived'",
+            [parcel_id, student_name, phone]
+        );
+
+        if (parcels.length === 0) {
+            return res.status(404).json({ error: "Parcel not found or already delivered" });
+        }
+
+        // Invalidate any existing active OTPs for this parcel
+        await promiseDb.query(
+            "UPDATE parcel_otps SET status = 'Expired' WHERE parcel_id = ? AND status = 'Active'",
+            [parcel_id]
+        );
+
+        // Generate 6-digit OTP
+        const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+        // Calculate expiry time
+        const expiresAt = new Date();
+        expiresAt.setMinutes(expiresAt.getMinutes() + OTP_EXPIRY_MINUTES);
+
+        // Save OTP to database
+        await promiseDb.query(
+            "INSERT INTO parcel_otps (parcel_id, email, otp_code, expires_at) VALUES (?, ?, ?, ?)",
+            [parcel_id, studentEmail, otpCode, expiresAt]
+        );
+
+        // Send email
+        if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+            try {
+                await transporter.sendMail({
+                    from: `"Smart Parcel Management" <${process.env.EMAIL_USER}>`,
+                    to: studentEmail,
+                    subject: 'Your Parcel Collection OTP',
+                    html: `
+                        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                            <h2 style="color: #d32f2f;">Smart Parcel Management System</h2>
+                            <p>Hello ${student_name},</p>
+                            <p>Your OTP for parcel collection is:</p>
+                            <div style="background: #f5f5f5; padding: 20px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #d32f2f; margin: 20px 0;">
+                                ${otpCode}
+                            </div>
+                            <p><strong>Parcel ID:</strong> ${parcel_id}</p>
+                            <p><strong>Source:</strong> ${parcels[0].source}</p>
+                            <p style="color: #666;">This OTP will expire in ${OTP_EXPIRY_MINUTES} minutes.</p>
+                            <p style="color: #666;">Do not share this OTP with anyone.</p>
+                        </div>
+                    `
+                });
+                console.log(`OTP email sent to ${studentEmail}`);
+            } catch (emailErr) {
+                console.error("Error sending email:", emailErr);
+                // Continue even if email fails - OTP is still saved
+            }
+        } else {
+            console.log(`Email not configured. OTP for ${studentEmail}: ${otpCode}`);
+        }
+
+        res.json({
+            success: true,
+            message: "OTP generated successfully",
+            otp_code: otpCode,
+            email: studentEmail
+        });
+
+    } catch (err) {
+        console.error("Error generating OTP:", err);
+        res.status(500).json({ error: "Failed to generate OTP" });
+    }
+});
+
+// Verify OTP and mark parcel as delivered
+app.post('/api/otp/verify', async (req, res) => {
+    const { parcel_id, otp_code } = req.body;
+
+    if (!parcel_id || !otp_code) {
+        return res.status(400).json({ error: "Parcel ID and OTP are required" });
+    }
+
+    try {
+        // Find active OTP for this parcel
+        const [otps] = await promiseDb.query(
+            "SELECT * FROM parcel_otps WHERE parcel_id = ? AND otp_code = ? AND status = 'Active'",
+            [parcel_id, otp_code]
+        );
+
+        if (otps.length === 0) {
+            return res.status(400).json({ error: "Invalid OTP" });
+        }
+
+        const otp = otps[0];
+
+        // Check if OTP is expired
+        const now = new Date();
+        const expiresAt = new Date(otp.expires_at);
+
+        if (now > expiresAt) {
+            // Mark OTP as expired
+            await promiseDb.query(
+                "UPDATE parcel_otps SET status = 'Expired' WHERE id = ?",
+                [otp.id]
+            );
+            return res.status(400).json({ error: "OTP has expired" });
+        }
+
+        // Mark OTP as used
+        await promiseDb.query(
+            "UPDATE parcel_otps SET status = 'Used', used_at = NOW() WHERE id = ?",
+            [otp.id]
+        );
+
+        // Mark parcel as delivered
+        await promiseDb.query(
+            "UPDATE parcels SET status = 'Delivered', delivery_date = CURDATE() WHERE parcel_id = ?",
+            [parcel_id]
+        );
+
+        res.json({
+            success: true,
+            message: "OTP verified successfully. Parcel marked as delivered."
+        });
+
+    } catch (err) {
+        console.error("Error verifying OTP:", err);
+        res.status(500).json({ error: "Failed to verify OTP" });
+    }
+});
+
 // Get dashboard statistics
 app.get('/api/dashboard/stats', async (req, res) => {
     try {
@@ -522,6 +806,27 @@ app.get('/', (req, res) => {
 // Test route
 app.get('/api/test', (req, res) => {
     res.json({ message: "API is working!", timestamp: new Date().toISOString() });
+});
+
+// Test email route
+app.get('/api/test-email', async (req, res) => {
+    const testEmail = req.query.email;
+    if (!testEmail) {
+        return res.status(400).json({ error: "Please provide an email address: /api/test-email?email=your@email.com" });
+    }
+    
+    try {
+        const info = await transporter.sendMail({
+            from: `"Smart Parcel System" <${process.env.EMAIL_USER}>`,
+            to: testEmail,
+            subject: "Test Email",
+            text: "This is a test email from Smart Parcel Management System"
+        });
+        res.json({ success: true, message: "Test email sent", messageId: info.messageId });
+    } catch (err) {
+        console.error("Test email failed:", err);
+        res.status(500).json({ success: false, error: err.message, code: err.code });
+    }
 });
 
 // Error handling middleware

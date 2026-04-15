@@ -173,6 +173,19 @@ nav a.active {
     background-color: #b71c1c;
 }
 
+.role-btn.delivery {
+    background-color: #2196f3;
+    border-color: #2196f3;
+    color: white;
+}
+
+.role-btn.delivery:hover {
+    background-color: #1976d2;
+    border-color: #1976d2;
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(33, 150, 243, 0.3);
+}
+
 /* ============ LOGIN CONTAINER ============ */
 
 .login-container {

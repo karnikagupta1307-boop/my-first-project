@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delivery Person Dashboard - Smart Parcel Management</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Delivery Person Dashboard Specific Styles */
+        .delivery-header {
+            background: linear-gradient(135deg, #d32f2f 0%, #c62828 100%);
+            color: white;
+            padding: 1.5rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .delivery-header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .delivery-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .delivery-badge {
+            background: rgba(255,255,255,0.2);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+
+        .logout-btn {
+            background: white;
+            color: #d32f2f;
+            border: none;
+            padding: 0.6rem 1.2rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .logout-btn:hover {
+            background: #f5f5f5;
+        }
+
+        /* Main Container */
+        .watchman-container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-left: 4px solid #d32f2f;
+        }
+
+        .stat-card h3 {
+            margin: 0 0 0.5rem 0;
+            color: #666;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #d32f2f;
+            margin: 0;
+        }
+
+        /* OTP Generation Section */
+        .otp-section {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+
+        .otp-section-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .otp-section-header h2 {
+            margin: 0;
+            color: #333;
+            font-size: 1.3rem;
+        }
+
+        .otp-section-header svg {
+            stroke: #d32f2f;
+        }
+
+        /* Parcel Selection */
+        .parcel-select-form {
+            display: grid;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .form-group label {
+            font-weight: 500;
+            color: #555;
+            font-size: 0.9rem;
+        }
+
+        .form-group select,
+        .form-group input {
+            padding: 0.75rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        .form-group select:focus,
+        .form-group input:focus {
+            outline: none;
+            border-color: #d32f2f;
+        }
+
+        /* Generate OTP Button */
+        .btn-generate-otp {
+            background: linear-gradient(135deg, #d32f2f 0%, #c62828 100%);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            width: 100%;
+            max-width: 300px;
+            margin: 0 auto;
+        }
+
+        .btn-generate-otp:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(211, 47, 47, 0.3);
+        }
+
+        .btn-generate-otp:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* OTP Display */
+        .otp-display-container {
+            background: linear-gradient(135deg, #fff3f3 0%, #ffffff 100%);
+            border: 2px solid #ffcdd2;
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            margin-top: 2rem;
+            display: none;
+        }
+
+        .otp-display-container.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .otp-display-label {
+            color: #666;
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .otp-code-display {
+            font-size: 3.5rem;
+            font-weight: 700;
+            color: #d32f2f;
+            letter-spacing: 8px;
+            font-family: 'Courier New', monospace;
+            margin: 1rem 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .otp-timer {
+            color: #666;
+            font-size: 0.9rem;
+            margin-top: 1rem;
+        }
+
+        .otp-timer span {
+            color: #d32f2f;
+            font-weight: 600;
+        }
+
+        .otp-success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        /* Recent OTPs Table */
+        .recent-otps-section {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .recent-otps-section h2 {
+            margin: 0 0 1.5rem 0;
+            color: #333;
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .recent-otps-section h2 svg {
+            stroke: #d32f2f;
+        }
+
+        .otp-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .otp-table th {
+            background: #f8f9fa;
+            color: #495057;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 0.5px;
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .otp-table td {
+            padding: 1rem;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .otp-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .status-active {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-used {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-expired {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .watchman-header {
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+
+            .otp-code-display {
+                font-size: 2.5rem;
+                letter-spacing: 4px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="delivery-header">
+        <h1>
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+            Smart Parcel Management - Delivery Portal
+        </h1>
+        <div class="delivery-info">
+            <span class="delivery-badge">📦 <span id="deliveryName">Delivery Person</span></span>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="watchman-container">
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>Pending Deliveries</h3>
+                <p class="stat-number" id="pendingCount">3</p>
+            </div>
+            <div class="stat-card">
+                <h3>Active OTPs</h3>
+                <p class="stat-number" id="activeOtpCount">1</p>
+            </div>
+            <div class="stat-card">
+                <h3>Delivered Today</h3>
+                <p class="stat-number" id="deliveredCount">5</p>
+            </div>
+        </div>
+
+        <!-- OTP Generation Section -->
+        <div class="otp-section">
+            <div class="otp-section-header">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                <h2>Generate Delivery OTP</h2>
+            </div>
+
+            <div class="parcel-select-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="parcelSelect">Select Parcel</label>
+                        <select id="parcelSelect">
+                            <option value="">-- Select a parcel --</option>
+                            <option value="1">Parcel #1 - Rahul Sharma (Amazon)</option>
+                            <option value="2">Parcel #2 - Priya Mehta (Flipkart)</option>
+                            <option value="3">Parcel #3 - Aditya Verma (Myntra)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="studentPhone">Student Phone</label>
+                        <input type="text" id="studentPhone" placeholder="Enter student phone number" maxlength="10">
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn-generate-otp" onclick="generateOTP()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+                Generate OTP
+            </button>
+
+            <!-- OTP Display -->
+            <div class="otp-display-container" id="otpDisplay">
+                <div class="otp-success-message">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    OTP Generated Successfully!
+                </div>
+                <div class="otp-display-label">Share this OTP with the student</div>
+                <div class="otp-code-display" id="generatedOtp">482913</div>
+                <div class="otp-timer">⏱️ Valid for: <span id="timer">05:00</span> minutes</div>
+            </div>
+        </div>
+
+        <!-- Recent OTPs -->
+        <div class="recent-otps-section">
+            <h2>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                Recent OTPs
+            </h2>
+            <table class="otp-table">
+                <thead>
+                    <tr>
+                        <th>Parcel ID</th>
+                        <th>Student Name</th>
+                        <th>OTP</th>
+                        <th>Generated At</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>#2</strong></td>
+                        <td>Priya Mehta</td>
+                        <td><code style="background: #f0f0f0; padding: 0.25rem 0.5rem; border-radius: 4px; font-family: monospace; font-size: 1.1rem; color: #d32f2f;">482913</code></td>
+                        <td>Today, 02:15 PM</td>
+                        <td><span class="status-badge status-active">Active</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>#1</strong></td>
+                        <td>Rahul Sharma</td>
+                        <td><code style="background: #f0f0f0; padding: 0.25rem 0.5rem; border-radius: 4px; font-family: monospace; font-size: 1.1rem; color: #28a745;">739284</code></td>
+                        <td>Today, 01:30 PM</td>
+                        <td><span class="status-badge status-used">Used</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>#5</strong></td>
+                        <td>Neha Gupta</td>
+                        <td><code style="background: #f0f0f0; padding: 0.25rem 0.5rem; border-radius: 4px; font-family: monospace; font-size: 1.1rem; color: #666;">915673</code></td>
+                        <td>Today, 11:45 AM</td>
+                        <td><span class="status-badge status-expired">Expired</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Check if delivery person is logged in
+        window.onload = function() {
+            const isLoggedIn = sessionStorage.getItem('isLoggedIn');
+            const userRole = sessionStorage.getItem('userRole');
+            const username = sessionStorage.getItem('username');
+
+            if (!isLoggedIn || userRole !== 'delivery') {
+                window.location.href = 'delivery_login.html';
+                return;
+            }
+
+            document.getElementById('deliveryName').textContent = username || 'Delivery Person';
+        };
+
+        function logout() {
+            sessionStorage.clear();
+            window.location.href = 'delivery_login.html';
+        }
+
+        function generateOTP() {
+            const parcelSelect = document.getElementById('parcelSelect');
+            const phoneInput = document.getElementById('studentPhone');
+            const otpDisplay = document.getElementById('otpDisplay');
+            const generatedOtp = document.getElementById('generatedOtp');
+
+            if (!parcelSelect.value) {
+                alert('Please select a parcel first!');
+                parcelSelect.focus();
+                return;
+            }
+
+            // Generate random 6-digit OTP
+            const otp = Math.floor(100000 + Math.random() * 900000).toString();
+            generatedOtp.textContent = otp;
+
+            // Show OTP display
+            otpDisplay.classList.add('active');
+
+            // Reset timer
+            let timeLeft = 300; // 5 minutes
+            const timerElement = document.getElementById('timer');
+
+            const timerInterval = setInterval(() => {
+                const minutes = Math.floor(timeLeft / 60);
+                const seconds = timeLeft % 60;
+                timerElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    timerElement.textContent = 'Expired';
+                    timerElement.style.color = '#d32f2f';
+                }
+                timeLeft--;
+            }, 1000);
+
+            // Scroll to OTP display
+            otpDisplay.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    </script>
+</body>
+</html>
