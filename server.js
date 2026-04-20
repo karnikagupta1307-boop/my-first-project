@@ -693,43 +693,42 @@ app.post('/api/otp/generate', async (req, res) => {
             [parcel_id, studentEmail, otpCode, expiresAt]
         );
 
-        // Send email
-        if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-            try {
-                await transporter.sendMail({
-                    from: `"Smart Parcel Management" <${process.env.EMAIL_USER}>`,
-                    to: studentEmail,
-                    subject: 'Your Parcel Collection OTP',
-                    html: `
-                        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                            <h2 style="color: #d32f2f;">Smart Parcel Management System</h2>
-                            <p>Hello ${student_name},</p>
-                            <p>Your OTP for parcel collection is:</p>
-                            <div style="background: #f5f5f5; padding: 20px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #d32f2f; margin: 20px 0;">
-                                ${otpCode}
-                            </div>
-                            <p><strong>Parcel ID:</strong> ${parcel_id}</p>
-                            <p><strong>Source:</strong> ${parcels[0].source}</p>
-                            <p style="color: #666;">This OTP is valid until you collect your parcel.</p>
-                            <p style="color: #666;">Do not share this OTP with anyone.</p>
-                        </div>
-                    `
-                });
-                console.log(`OTP email sent to ${studentEmail}`);
-            } catch (emailErr) {
-                console.error("Error sending email:", emailErr);
-                // Continue even if email fails - OTP is still saved
-            }
-        } else {
-            console.log(`Email not configured. OTP for ${studentEmail}: ${otpCode}`);
-        }
-
+        // Send response immediately - don't wait for email
         res.json({
             success: true,
             message: "OTP generated successfully",
             otp_code: otpCode,
             email: studentEmail
         });
+
+        // Send email asynchronously (don't block the response)
+        if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+            transporter.sendMail({
+                from: `"Smart Parcel Management" <${process.env.EMAIL_USER}>`,
+                to: studentEmail,
+                subject: 'Your Parcel Collection OTP',
+                html: `
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                        <h2 style="color: #d32f2f;">Smart Parcel Management System</h2>
+                        <p>Hello ${student_name},</p>
+                        <p>Your OTP for parcel collection is:</p>
+                        <div style="background: #f5f5f5; padding: 20px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #d32f2f; margin: 20px 0;">
+                            ${otpCode}
+                        </div>
+                        <p><strong>Parcel ID:</strong> ${parcel_id}</p>
+                        <p><strong>Source:</strong> ${parcels[0].source}</p>
+                        <p style="color: #666;">This OTP is valid until you collect your parcel.</p>
+                        <p style="color: #666;">Do not share this OTP with anyone.</p>
+                    </div>
+                `
+            }).then(() => {
+                console.log(`OTP email sent to ${studentEmail}`);
+            }).catch((emailErr) => {
+                console.error("Error sending email:", emailErr);
+            });
+        } else {
+            console.log(`Email not configured. OTP for ${studentEmail}: ${otpCode}`);
+        }
 
     } catch (err) {
         console.error("Error generating OTP:", err);

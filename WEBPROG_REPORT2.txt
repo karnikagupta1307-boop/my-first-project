@@ -1,0 +1,279 @@
+A 
+MINI PROJECT REPORT 
+              WEB PROGRAMMING
+ON 
+SMART PARCEL MANAGEMENT SYSTEM 
+ 
+Academic Year: 2025-2026 
+ 
+Under The Guidance of 
+Prof. Nikita Pande 
+ 
+Submitted by 
+Tanishi Shukla(70022500270) 
+Karnika Gupta(70022400631) 
+ 
+Git hub repository : Link 
+ 
+ 
+Department of STME , Computer Engineering  
+SVKM’s NMIMS(Deemed-to-be-University) 
+Mukesh Patel School of Technology Management 
+& Engineering, Hyderabad Campus  
+
+ 
+Index  
+ 
+ 
+S.NO Section Title   Page Number 1 ABSTRACT 3 2 SYSTEM ARCHITECTURE4 3 TECH STACK5 4 UI & UX 65 FRONTEND IMPLEMENTATION7 6 BACKEND & SERVER CONFIGURATION7 7 WORKFLOW DIAGRAM 8 8 RESTFUL API & CLIENT-SERVER COMMUNICATION9 9 SECURITY & THIRD-PARTY INTEGRATIONS9 10 RESULTS10 11 FUTURE WORKS16 12 CONCLUSION17 
+ 
+ 
+ 
+ 
+ 
+
+
+ABSTRACT 
+ 
+The rapid expansion of e-commerce has significantly increased the volume of incoming packages at educational institutions, exposing the critical flaws in traditional, paper-based parcel management systems. These legacy methods are highly susceptible to human error, lack real-time transparency for recipients, and often result in misplaced packages or unauthorized handovers. The Smart Parcel Management System developed in this project directly addresses these logistical bottlenecks by introducing a secure, digitized, full-stack web application.
+Built upon a robust Client-Server architecture, the system provides a seamless digital bridge between campus administrative staff (Watchmen) and the student body. The frontend is engineered using semantic HTML5, CSS3, and Vanilla JavaScript (ES6), delivering a responsive, asynchronous interface that dynamically updates the Document Object Model (DOM) using the Fetch API. To ensure data separation and security, role-based access control (RBAC) was implemented, yielding two distinct interfaces: a read-only tracking dashboard for students and a comprehensive management console for administrators.
+The backbone of the application is an Express.js (Node.js) server that exposes a series of RESTful API endpoints. This backend intricately manages client requests, connects to a normalized MySQL database via connection pooling, and executes core business logic. Security and accountability are treated as paramount; user passwords are cryptographically hashed using bcrypt before database insertion, and package handovers are secured via a dynamic, 6-digit One-Time Password (OTP) system. Upon package arrival, the backend leverages Nodemailer to automatically dispatch this OTP via an SMTP server to the student's registered email address. By combining resilient relational data storage with asynchronous web technologies, this project successfully modernizes campus logistics, ensuring an accountable, scalable, and user-friendly digital ecosystem.
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+SYSTEM ARCHITECTURE 
+
+The Smart Parcel Management System is built upon a standard, robust 3-Tier Web Architecture. This design pattern separates the application into three logical and physical computing tiers, ensuring that the codebase remains modular, scalable, and easy to maintain.
+* Tier 1: Presentation Layer (Client-Side)
+o Environment: The user's web browser.
+o Function: This layer is responsible for the User Interface (UI) and capturing user inputs. It is built using HTML5, CSS3, and Vanilla JavaScript. Instead of relying on traditional form submissions that cause full page reloads, this layer uses the Fetch API to send asynchronous HTTP requests (AJAX) to the server.
+* Tier 2: Application Layer (Server-Side / Backend)
+o Environment: Node.js runtime.
+o Function: Powered by Express.js, this tier acts as the central nervous system of the application. It receives HTTP requests from the client, processes business logic (e.g., verifying an 11-digit SAP ID, triggering OTP generation via Nodemailer), and orchestrates communication with the database.
+* Tier 3: Data Layer (Database)
+o Environment: MySQL Relational Database Management System.
+o Function: This tier is strictly responsible for persistent data storage. It executes SQL queries received from the Application Layer using the mysql2 connection pool to store and retrieve records for students, parcels, admins, and OTPs.
+Data Flow:
+1. The client (browser) triggers a JavaScript event (e.g., clicking "Login").
+2. The frontend scripts package the input data into a JSON payload and send a POST request to the backend.
+3. The Express server parses the JSON, validates it, and executes a parameterized SQL query via the mysql2 driver.
+4. The database returns the result to the server, which formats it back into JSON and responds to the client.
+5. The frontend JavaScript parses the response and updates the DOM dynamically.
+
+
+
+
+
+
+
+TECH STACK 
+ 
+Frontend: 
+• HTML5 - Semantic markup for structure 
+• CSS3 - Styling with Flexbox/Grid for responsive design 
+• JavaScript (ES6) - Client-side logic and API integration 
+ 
+Backend: 
+• Node.js - JavaScript runtime environment 
+• Express.js v5.2.1 - Web application framework 
+• MySQL2 v3.21.0 - Database driver for MySQL connectivity 
+ 
+Database: 
+• MySQL - Relational database management system 
+ 
+External Services: 
+• Gmail SMTP - Email delivery service for OTP notifications 
+• Nodemailer - Node.js module for email sending 
+ 
+Development Tools: 
+• MySQL Workbench - Database design and management 
+• Visual Studio Code - Code editor 
+• Git - Version control system 
+ 
+ 
+ 
+ 
+
+ 
+
+UI & UX
+The interface was designed to be highly accessible, minimizing the learning curve for both campus staff and students.
+UI Design Principles:
+* Color Scheme: The application utilizes a professional palette, primarily featuring a Primary Red (#d32f2f) for headers and primary action buttons, complemented by a Dark Red (#c62828) for navigation bars. Backgrounds use crisp whites and light grays (#f5f5f5) to maintain high contrast and readability.
+* Modern Components: The layout employs card-based UI design with subtle box-shadows. Input fields feature a modern 8px border-radius, moving away from harsh, blocky legacy designs.
+* Visual Status Indicators: Color-coded badges instantly communicate parcel states (e.g., Green for "Delivered", Yellow for "Arrived"), allowing administrators to scan tables quickly.
+UX (User Experience) Enhancements:
+* Role-Based Segregation: The system features a clear "Gateway" (Role Selection screen). This ensures that Students are not cluttered with Admin tools, and Delivery Personnel have a streamlined view focused only on handovers.
+* Responsive Design: Utilizing CSS Flexbox and Grid, the UI seamlessly adapts. On desktop, it displays full multi-column data tables; on mobile devices, it collapses into a single-column layout with full-width inputs for easy tapping.
+* Non-Blocking Interactions: By utilizing asynchronous JavaScript, actions like marking a parcel as "Delivered" update the UI instantly without forcing the user to wait for a full webpage refresh.
+
+
+
+
+
+
+
+
+ 
+FRONTEND IMPLEMENTATION
+The client-side relies on Vanilla JavaScript (ES6) to ensure lightweight, fast performance without the overhead of heavy frameworks.
+* Session Management: The browser's localStorage is used to maintain login states securely. Protected dashboards verify this local token upon loading and immediately redirect unauthorized users back to the login screen.
+* Asynchronous Rendering: The UI utilizes the Fetch API to request JSON data from the server asynchronously. Once received, JavaScript template literals dynamically map the data into HTML tables, allowing the interface to update without requiring full page reloads.
+* Client-Side Validation: JavaScript intercepts all form submissions (e.preventDefault()) to enforce strict input rules—such as ensuring SAP IDs are exactly 11 digits—before making network requests, which reduces unnecessary server load.
+
+BACKEND & SERVER CONFIGURATION
+The server logic is centrally managed in server.js using Node.js and Express.js.
+* Middleware: The application utilizes express.json() to parse incoming HTTP payloads and cors() to securely manage cross-origin resource sharing, dictating which domains can access the API.
+* Database Connection Pooling: Instead of establishing a new database connection for every user request, the server uses the mysql2 driver to create a connection pool. This efficiently handles concurrent user traffic and prevents server bottlenecking.
+* Automated Initialization: Upon startup, an asynchronous initializeDatabase() function ensures the MySQL database and all required tables (Students, Parcels, Admins, OTPs) are automatically generated if they do not already exist, making the server immediately ready for deployment.
+
+
+ 
+ 
+ 
+ 
+ 
+WORKFLOW DIAGRAM  
+ 
+FIG: WORKFLOW 
+
+RESTful API & CLIENT-SERVER COMMUNICATION
+The application employs a RESTful API architecture to facilitate seamless, structured communication between the frontend client and the MySQL database. The Express.js server acts as the middleman, exposing specific endpoints that perform database operations and return formatted JSON responses.
+Below are the core API endpoints implemented in the system:
+Authentication APIs
+* POST /api/auth/student/register: Accepts new student details, encrypts the password using bcrypt, and creates a database record.
+* POST /api/auth/student/login: Validates a student's 11-digit SAP ID and password hash, returning user details to establish a frontend session.
+Parcel Management APIs
+* POST /api/parcels: Allows Watchmen/Admins to add a new parcel to the system, automatically generating a sequential parcel ID.
+* GET /api/parcels/student: Retrieves a filtered JSON array of all parcels assigned to a specific student (queried via sap_id or phone).
+* PUT /api/parcels/:id/deliver: Updates a specific parcel's status in the database from 'Arrived' to 'Delivered'.
+Security & OTP APIs
+* POST /api/otp/generate: Verifies a parcel's status, invalidates old OTPs, generates a secure 6-digit code, and triggers Nodemailer to dispatch the email.
+* POST /api/otp/verify: Receives the student's OTP input, compares it against active database records, and marks the parcel as delivered upon successful validation.
+
+SECURITY & THIRD-PARTY INTEGRATIONS
+The system implements multiple security layers and integrates reliable Node.js modules to protect data and streamline operations.
+A. Security Implementations
+1. Cryptographic Hashing: Plain-text passwords are never stored. The bcrypt library hashes passwords during registration with a salt round of 10 (SALT_ROUNDS = 10).
+2. Input Validation: Express routes use Regular Expressions (Regex) to validate data—such as enforcing 11-digit SAP IDs and 10-digit phone numbers—before database insertion.
+3. SQL Injection Prevention: The API exclusively uses parameterized queries via the mysql2 driver (e.g., SELECT * FROM students WHERE sap_id = ?), separating query structure from user input.
+4. Environment Variables: Sensitive credentials, like database and SMTP passwords, are secured using the dotenv package and loaded from a hidden .env file.
+5. OTP Lifecycle: Generating a new OTP automatically expires previous active codes for that parcel. Used OTPs are marked accordingly in the database to prevent replay attacks.
+B. Third-Party Integrations
+The application relies on core NPM packages:
+* Nodemailer: Configured with Gmail SMTP to dispatch automated, HTML-formatted OTP emails to students.
+* CORS: Middleware that restricts and secures cross-origin HTTP requests to the backend API.
+* MySQL2: Provides connection pooling and promise wrappers for high-performance, asynchronous database queries.
+
+RESULTS
+The Smart Parcel Management System significantly improves campus logistics by providing an efficient, secure, and scalable digital solution.
+* Efficient Tracking: Parcels move through clear stages—Arrived, OTP Generated, and Delivered—providing real-time visibility for administrators.
+* Secure Handover: A unique OTP verification system ensures only the intended recipient can collect a parcel, establishing strict accountability.
+* Automated Notifications: OTP codes are dispatched instantly via Gmail SMTP and Nodemailer, eliminating communication delays.
+* Role-Based Access: Distinct interfaces for administrators/watchmen and students ensure a controlled, organized workflow without exposing sensitive data.
+* Reduced Administrative Work: Auto-fetching recipient details during data entry speeds up processing and minimizes human error.
+* Scalable Architecture: A fully normalized MySQL database supports large data volumes while maintaining integrity through enforced foreign key relationships.
+ 
+Application Interface 
+1) Role selection  
+ 
+FIG: ROLE SELECTION 
+  
+ 
+2)  Login Interfaces
+  
+                Fig : student registration                               fig : Student Login  
+            	 
+ 
+Fig: Admin Login
+
+
+
+3) Dashboards  
+FIG: STUDENT DASHBOARD
+ 
+FIG: ADMIN DASHBOARD 
+ 
+
+
+ 
+FIG: DELIVERY PERSON DASHBOARD 
+ 
+
+
+
+
+
+
+
+
+4) Manage parcels 
+ 
+FIG: MANAGE PARCEL 
+
+5) Otp generation 
+ 
+            FIG: OTP GENERATION 
+
+
+ 
+FIG: OTP EMAIL NOTIFICATION 
+ 
+
+ 
+FIG: SUCCESSFUL PARCEL HANDOVER 
+
+
+
+
+6) Delivered  
+ 
+FIG: STUDENT PARCEL TRACKING INTERFACE 
+    
+FUTURE WORKS
+Real-Time Bidirectional Communication (WebSockets)
+Implement Socket.io to enable instant updates on the Watchman dashboard whenever a new parcel arrives, eliminating the need for manual page refreshes.
+
+Progressive Web Application (PWA)
+Add a manifest.json file and Service Workers to allow the application to be installed directly on mobile home screens, improving accessibility for campus staff.
+
+Advanced Authentication (JWT)
+Migrate from standard localStorage-based session management to secure JSON Web Tokens (JWT) for stronger API route protection and improved security. 
+
+Frontend Framework Migration
+Transition from Vanilla JavaScript DOM manipulation to a component-based framework such as React.js or Vue.js. This will simplify state management and improve scalability as the application grows.
+
+Browser-Based Barcode Scanning
+Leverage the HTML5 MediaDevices API to enable administrative staff to scan parcel barcodes directly using the device’s camera through the web browser.
+                  
+CONCLUSION 
+The development and deployment of the Smart Parcel Management System successfully demonstrate the practical, end-to-end application of modern web programming paradigms. By transitioning a manual logistical process into a digitized platform, the project highlights the immense utility of separating frontend presentation from backend business logic.
+Throughout the development lifecycle, several critical web programming objectives were achieved. The implementation of a RESTful API architecture using Express.js provided a scalable way to handle multiple, concurrent HTTP requests. The backend API cleanly manages all CRUD (Create, Read, Update, Delete) operations, abstracts the complexity of MySQL database queries, and securely handles authentication routing. Furthermore, the integration of third-party modules—such as bcrypt for secure data encryption and Nodemailer for automated email dispatch—showcases the extensibility of the Node.js ecosystem.
+On the client side, the project successfully avoided heavy, monolithic page reloads by utilizing asynchronous JavaScript and the Fetch API. This approach allowed for dynamic UI rendering, where tables and dashboards are populated on the fly, creating a fluid, app-like user experience. Utilizing localStorage for session persistence provided a lightweight yet effective method to maintain user states across different views without relying on complex server-side sessions.
+Ultimately, this system proves that foundational web technologies (HTML, CSS, Vanilla JS, Node.js, and SQL) can be orchestrated to build a highly functional, secure, and responsive application. It eliminates the communication gaps inherent in physical tracking, reduces the administrative overhead for campus staff, and provides a clear digital audit trail, fulfilling all initial project objectives.
+ 
+ 
+
+
+
+
+
+
+1  
+ 
+
+1  
+ 
+
+
+
+
+1  
+ 
+
